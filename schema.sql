@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS candidates (
     party TEXT NOT NULL,
     photo TEXT,
     votes_count INTEGER NOT NULL DEFAULT 0,
+    constituency TEXT DEFAULT '',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -47,6 +48,34 @@ CREATE TABLE IF NOT EXISTS votes (
     FOREIGN KEY (candidate_id) REFERENCES candidates(id) ON DELETE CASCADE
 );
 
+-- Table: passkeys
+-- Server-verified WebAuthn passkey (fingerprint) credentials per voter.
+-- One voter may have several (phone, laptop, security key, ...).
+CREATE TABLE IF NOT EXISTS passkeys (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    voter_id INTEGER NOT NULL,
+    credential_id TEXT NOT NULL UNIQUE,
+    public_key TEXT NOT NULL,
+    alg INTEGER NOT NULL DEFAULT -7,
+    sign_count INTEGER NOT NULL DEFAULT 0,
+    device_label TEXT DEFAULT '',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Table: biometric_logs
+-- Audit trail of biometric (face / fingerprint) verification attempts
+CREATE TABLE IF NOT EXISTS biometric_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    voter_id INTEGER NOT NULL,
+    method TEXT NOT NULL DEFAULT 'face',
+    matched INTEGER NOT NULL DEFAULT 0,
+    distance REAL,
+    image_file TEXT DEFAULT '',
+    ip_address TEXT DEFAULT '',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Indexes for optimized lookups
 CREATE INDEX IF NOT EXISTS idx_voters_status ON voters(status);
 CREATE INDEX IF NOT EXISTS idx_voters_voter_id ON voters(voter_id_number);
+CREATE INDEX IF NOT EXISTS idx_passkeys_voter ON passkeys(voter_id);

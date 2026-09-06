@@ -378,7 +378,7 @@ $selected_constituency = $_SESSION['selected_constituency'] ?? '';
         "Tamil Nadu": ["Chennai Central (PC-04)", "Chennai South (PC-03)", "Chennai North (PC-02)", "Coimbatore (PC-20)", "Madurai (PC-32)", "Sriperumbudur (PC-05)"],
         "Telangana": ["Hyderabad (PC-09)", "Secunderabad (PC-08)", "Chevella (PC-10)", "Malkajgiri (PC-07)", "Warangal (PC-15)"],
         "Tripura": ["Tripura West (PC-01)", "Tripura East (PC-02)"],
-        "Uttar Pradesh": ["Gautam Buddha Nagar (PC-13)", "Varanasi (PC-77)", "Lucknow (PC-35)", "Amethi (PC-37)", "Gorakhpur (PC-64)", "Agra (PC-18)", "Kanpur (PC-43)", "Prayagraj (PC-52)"],
+        "Uttar Pradesh": ["Gautam Buddha Nagar (PC-13)", "Varanasi (PC-77)", "Rae Bareli (PC-36)", "Lucknow (PC-35)", "Amethi (PC-37)", "Gorakhpur (PC-64)", "Agra (PC-18)", "Kanpur (PC-43)", "Prayagraj (PC-52)"],
         "Uttarakhand": ["Haridwar (PC-05)", "Tehri Garhwal (PC-01)", "Garhwal (PC-02)", "Almora (PC-03)", "Nainital-Udhamsingh Nagar (PC-04)"],
         "West Bengal": ["Kolkata Dakshin (PC-23)", "Kolkata Uttar (PC-24)", "Darjeeling (PC-04)", "Howrah (PC-25)", "Asansol (PC-40)", "Diamond Harbour (PC-21)"],
 

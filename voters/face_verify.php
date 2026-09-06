@@ -2,7 +2,7 @@
 session_start();
 require_once __DIR__ . '/../db.php';
 
-// Authentication Check: Ensure voter is logged in
+// Authentication Check: ensure voter is logged in
 if (!isset($_SESSION['vid'])) {
     header("Location: ../login.php");
     exit();
@@ -21,7 +21,6 @@ try {
         exit();
     }
 
-    // Ensure voter is approved by admin
     $status = strtolower(trim($voter['status'] ?? 'pending'));
     if ($status !== 'approved') {
         header("Location: ../login.php");
@@ -42,7 +41,6 @@ try {
 // Locate voter profile image
 $imageName = trim($voter['photo'] ?? '');
 $photoPath = "../images/default.png";
-
 if (!empty($imageName) && file_exists(__DIR__ . "/../images/" . $imageName)) {
     $photoPath = "../images/" . $imageName;
 }
@@ -52,10 +50,10 @@ if (!empty($imageName) && file_exists(__DIR__ . "/../images/" . $imageName)) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Biometric Face Verification - Online Voting System</title>
+    <title>Face Verification - Online Voting System</title>
     <link rel="stylesheet" href="../bootstrap/css/bootstrap.min.css">
-    <!-- Load Face-API.js library -->
-    <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
+    <!-- face-api.js is vendored locally so no internet is needed at runtime -->
+    <script src="../js/face-api.min.js"></script>
     <style>
         :root {
             --primary-color: blueviolet;
@@ -99,37 +97,49 @@ if (!empty($imageName) && file_exists(__DIR__ . "/../images/" . $imageName)) {
             padding: 2px;
             display: block;
             margin: 0 auto 10px auto;
+            background: #fff;
         }
 
-        .video-container {
-            position: relative;
-            display: inline-block;
-            margin: 15px auto;
-        }
-
+        .video-wrap { position: relative; display: inline-block; margin: 15px auto; }
         #webcam {
             width: 100%;
             max-width: 420px;
             height: auto;
             border-radius: 8px;
-            border: 2px solid #333333;
-            transform: scaleX(-1); /* Mirror view */
-            background-color: #000000;
+            border: 2px solid #333;
+            transform: scaleX(-1);
+            background: #000;
+        }
+        /* liveness hint overlaid on the video */
+        .liveness-tag {
+            position: absolute;
+            left: 50%;
+            bottom: 12px;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.65);
+            color: #fff;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 6px 14px;
+            border-radius: 20px;
+            white-space: nowrap;
+            pointer-events: none;
         }
 
         .btn-custom {
             background-color: var(--primary-color);
-            color: #ffffff;
+            color: #fff;
             font-weight: bold;
             padding: 10px 24px;
             border-radius: 6px;
             border: none;
         }
+        .btn-custom:hover { background-color: var(--primary-hover); color: #fff; }
+        .btn-custom:disabled { background-color: #c9b8dc; cursor: not-allowed; }
 
-        .btn-custom:hover {
-            background-color: var(--primary-hover);
-            color: #ffffff;
-        }
+        .step-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #dee2e6; margin: 0 3px; }
+        .step-dot.active { background: var(--primary-color); }
+        .step-dot.done { background: #28a745; }
 
         footer {
             text-align: center;
@@ -144,38 +154,43 @@ if (!empty($imageName) && file_exists(__DIR__ . "/../images/" . $imageName)) {
 <body>
 
     <header class="header">
-        <h4 class="m-0 font-weight-bold">Online Voting System — Biometric Verification</h4>
+        <h4 class="m-0 font-weight-bold">Online Voting System — Face Verification</h4>
     </header>
 
     <main class="container">
         <div class="row justify-content-center">
             <div class="col-md-8 col-lg-7">
                 <div class="verify-card text-center">
-                    <h4 class="font-weight-bold mb-2">Voter Face Verification</h4>
-                    <p class="text-muted small mb-3">Position your face in front of the camera. The system will match your live face with your registered identification photo.</p>
+                    <h4 class="font-weight-bold mb-1">Voter Face Verification</h4>
+                    <p class="text-muted small mb-2">Prove you are a real person: a short anti-spoof check happens before your face is matched to your registered photo.</p>
 
-                    <!-- Registered ID Profile Reference -->
                     <div class="mb-3">
-                        <img id="refImg" src="<?= htmlspecialchars($photoPath); ?>" alt="Registered Voter Photo" class="ref-photo" crossorigin="anonymous">
+                        <img id="refImg" src="<?= htmlspecialchars($photoPath); ?>" alt="Registered Voter Photo" class="ref-photo">
                         <p class="small text-muted mb-0"><strong><?= htmlspecialchars($voter['fullname'] ?? 'Voter'); ?></strong> (Registered Photo)</p>
                     </div>
 
-                    <!-- Live Webcam Feed -->
-                    <div class="video-container">
+                    <div class="video-wrap d-none" id="videoWrap">
                         <video id="webcam" autoplay muted playsinline></video>
+                        <div class="liveness-tag" id="livenessTag">Preparing…</div>
                     </div>
 
-                    <!-- Dynamic Status Display -->
                     <div class="my-3">
-                        <div id="statusAlert" class="alert alert-info py-2 d-inline-block px-4 mb-0">
-                            Initializing AI facial recognition models...
+                        <div id="statusAlert" class="alert alert-info py-2 d-inline-block px-4 mb-1">
+                            Initializing AI facial recognition models…
                         </div>
                     </div>
 
-                    <!-- Action Controls -->
-                    <div class="mt-3">
-                        <button id="verifyBtn" class="btn btn-success font-weight-bold px-4 py-2" disabled>Scan & Verify Identity</button>
+                    <div class="mt-2">
+                        <button id="verifyBtn" class="btn btn-success font-weight-bold px-4 py-2" disabled>Scan &amp; Verify Identity</button>
                         <a href="dashboard.php" class="btn btn-outline-secondary px-3 py-2 ml-2">Cancel</a>
+                    </div>
+                    <div class="mt-3 small">
+                        <span class="step-dot" id="s1"></span> Models ready
+                        <span class="step-dot" id="s2"></span> Liveness check (blink)
+                        <span class="step-dot" id="s3"></span> Server match
+                    </div>
+                    <div class="mt-2">
+                        <a href="verify_biometrics.php" class="text-muted small">No camera? Verify with fingerprint instead →</a>
                     </div>
                 </div>
             </div>
@@ -186,136 +201,234 @@ if (!empty($imageName) && file_exists(__DIR__ . "/../images/" . $imageName)) {
         <p class="m-0">&copy; <?= date('Y'); ?> Online Voting System. All Rights Reserved.</p>
     </footer>
 
-    <script>
-        const video = document.getElementById('webcam');
-        const refImg = document.getElementById('refImg');
-        const statusAlert = document.getElementById('statusAlert');
-        const verifyBtn = document.getElementById('verifyBtn');
+<script>
+(function () {
+    'use strict';
 
-        let registeredMatcher = null;
+    const video = document.getElementById('webcam');
+    const videoWrap = document.getElementById('videoWrap');
+    const refImg = document.getElementById('refImg');
+    const statusAlert = document.getElementById('statusAlert');
+    const verifyBtn = document.getElementById('verifyBtn');
+    const livenessTag = document.getElementById('livenessTag');
+    const steps = { s1: document.getElementById('s1'), s2: document.getElementById('s2'), s3: document.getElementById('s3') };
 
-        async function init() {
-            try {
-                statusAlert.className = "alert alert-info py-2";
-                statusAlert.innerText = "Loading facial detection models...";
+    let stream = null;
+    let referenceDescriptor = null;
+    let loopTimer = null;
 
-                // Load models from the local models folder
-                const MODEL_URL = '../models';
+    const MIN_FACE_AREA = 160 * 160;   // face must be large enough in frame
+    const EYE_CLOSED = 0.19;           // EAR below this = eye closed
+    const EYE_OPEN   = 0.24;           // EAR above this = eye open
+    const BLINKS_NEEDED = 2;
 
-                await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
-                await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
-                await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+    function setStatus(msg, kind) {
+        statusAlert.className = 'alert alert-' + (kind || 'info') + ' py-2 d-inline-block px-4 mb-1';
+        statusAlert.innerText = msg;
+    }
+    function setStep(id, state) { steps[id].className = 'step-dot ' + (state || ''); }
 
-                statusAlert.innerText = "Analyzing registered photo...";
+    // Eye aspect ratio from the 68 facial landmarks
+    function ear(pts) {
+        const d = (a, b) => Math.hypot(pts[a].x - pts[b].x, pts[a].y - pts[b].y);
+        const left  = (d(37, 41) + d(38, 40)) / (2 * d(36, 39) + 1e-6);
+        const right = (d(43, 47) + d(44, 46)) / (2 * d(42, 45) + 1e-6);
+        return (left + right) / 2;
+    }
 
-                // Ensure reference image is completely decoded before detection
-                if (!refImg.complete || refImg.naturalWidth === 0) {
-                    await new Promise((resolve) => {
-                        refImg.onload = resolve;
-                        refImg.onerror = resolve;
-                    });
-                }
+    async function stopCamera() {
+        if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+        if (loopTimer) { clearInterval(loopTimer); loopTimer = null; }
+        videoWrap.classList.add('d-none');
+    }
 
-                // Extract facial descriptors from registered ID photo
-                const refDetection = await faceapi.detectSingleFace(refImg)
-                    .withFaceLandmarks()
-                    .withFaceDescriptor();
+    // ---------- 1. load models + extract reference descriptor ----------
+    async function init() {
+        try {
+            setStatus('Loading facial recognition models…');
+            const MODEL_URL = '../models';
+            await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
+            await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+            await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+            setStep('s1', 'done');
 
-                if (!refDetection) {
-                    statusAlert.className = "alert alert-warning py-2";
-                    statusAlert.innerText = "Unable to detect face in registered profile picture. Please update photo.";
-                    return;
-                }
-
-                // Matcher threshold (distance <= 0.55 indicates high confidence match)
-                registeredMatcher = new faceapi.FaceMatcher(refDetection.descriptor, 0.55);
-
-                // Initialize camera
-                statusAlert.innerText = "Accessing live webcam feed...";
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { width: 420, height: 320 } 
-                });
-                video.srcObject = stream;
-
-                statusAlert.className = "alert alert-primary py-2";
-                statusAlert.innerText = "Webcam ready. Center your face and click Scan & Verify.";
-                verifyBtn.disabled = false;
-
-            } catch (err) {
-                statusAlert.className = "alert alert-danger py-2";
-                statusAlert.innerText = "Error: " + err.message;
+            setStatus('Analyzing registered photo…');
+            if (!refImg.complete || refImg.naturalWidth === 0) {
+                await new Promise((resolve) => { refImg.onload = resolve; refImg.onerror = resolve; });
             }
+
+            const refDetection = await faceapi.detectSingleFace(refImg).withFaceLandmarks().withFaceDescriptor();
+            if (!refDetection) {
+                setStatus('No face found in your registered profile photo. Please contact support or use fingerprint verification.', 'warning');
+                return;
+            }
+            referenceDescriptor = Array.from(refDetection.descriptor);
+            setStatus('Ready. Press “Scan & Verify” and follow the on-screen steps.', 'success');
+            verifyBtn.disabled = false;
+        } catch (err) {
+            setStatus('Error initializing face verification: ' + err.message, 'danger');
         }
+    }
 
-        // Handle verification click
-        verifyBtn.addEventListener('click', async () => {
-            verifyBtn.disabled = true;
-            statusAlert.className = "alert alert-info py-2";
-            statusAlert.innerText = "Scanning and comparing face descriptors...";
+    // ---------- 2. live liveness loop (blink detection) ----------
+    function startLivenessLoop() {
+        let blinkCount = 0;
+        let prevState = 'unknown'; // 'closed' | 'open'
+        let busy = false;
 
+        livenessTag.innerText = 'Look at the camera and blink ' + BLINKS_NEEDED + ' times…';
+        setStep('s2', 'active');
+
+        loopTimer = setInterval(async () => {
+            if (busy || !referenceDescriptor) return;
+            busy = true;
             try {
-                const liveDetection = await faceapi.detectSingleFace(video)
-                    .withFaceLandmarks()
-                    .withFaceDescriptor();
-
-                if (!liveDetection) {
-                    statusAlert.className = "alert alert-warning py-2";
-                    statusAlert.innerText = "No face detected in camera stream. Please look directly into the lens.";
-                    verifyBtn.disabled = false;
+                const det = await faceapi.detectSingleFace(video).withFaceLandmarks();
+                if (!det) {
+                    livenessTag.innerText = 'No face detected — center yourself in the frame';
+                    return;
+                }
+                const area = det.detection.box.width * det.detection.box.height;
+                if (area < MIN_FACE_AREA) {
+                    livenessTag.innerText = 'Move closer to the camera';
                     return;
                 }
 
-                const bestMatch = registeredMatcher.findBestMatch(liveDetection.descriptor);
+                const v = ear(det.landmarks.positions);
+                const now = v < EYE_CLOSED ? 'closed' : (v > EYE_OPEN ? 'open' : prevState);
 
-                // Euclidean distance check
-                if (bestMatch.distance <= 0.55) {
-                    statusAlert.className = "alert alert-success py-2 font-weight-bold";
-                    statusAlert.innerText = "Identity Verified! Authorizing ballot...";
+                if (prevState === 'closed' && now === 'open') blinkCount++;   // a blink completed
+                prevState = now;
 
-                    // Send server authorization
-                    const response = await fetch('verify_session.php', {
-                        method: 'POST',
-                        headers: { 
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json'
-                        },
-                        credentials: 'same-origin',
-                        body: JSON.stringify({ verified: true })
-                    });
-
-                    const rawResponse = await response.text();
-                    let resData;
-
-                    try {
-                        resData = JSON.parse(rawResponse);
-                    } catch (parseErr) {
-                        throw new Error("Invalid response received from verify_session.php. Make sure the file exists and has no PHP errors.");
-                    }
-
-                    if (resData.success) {
-                        statusAlert.innerText = "Access granted! Redirecting to ballot...";
-                        setTimeout(() => {
-                            window.location.href = "dashboard.php";
-                        }, 800);
-                    } else {
-                        statusAlert.className = "alert alert-danger py-2";
-                        statusAlert.innerText = "Session error: " + (resData.message || "Failed to set server verification.");
-                        verifyBtn.disabled = false;
-                    }
+                if (blinkCount >= BLINKS_NEEDED) {
+                    clearInterval(loopTimer);
+                    loopTimer = null;
+                    livenessTag.innerText = '✓ Liveness confirmed — capturing…';
+                    await captureAndVerify();
                 } else {
-                    statusAlert.className = "alert alert-danger py-2";
-                    statusAlert.innerText = "Face mismatch (Distance: " + bestMatch.distance.toFixed(2) + "). Verification failed.";
-                    verifyBtn.disabled = false;
+                    livenessTag.innerText = 'Blink again (' + (BLINKS_NEEDED - blinkCount) + ' more)';
                 }
-            } catch (scanErr) {
-                statusAlert.className = "alert alert-danger py-2";
-                statusAlert.innerText = "Scan failed: " + scanErr.message;
-                verifyBtn.disabled = false;
+            } catch (e) {
+                // transient detection errors are ignored
+            } finally {
+                busy = false;
             }
-        });
+        }, 120);
+    }
 
-        window.addEventListener('load', init);
-    </script>
+    // ---------- 3. capture a clean single-face frame + verify on server ----------
+    async function captureAndVerify() {
+        setStatus('Capturing your live photo…', 'primary');
+        try {
+            // Draw several frames and keep the first with exactly one face, eyes open
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
 
+            let chosen = null;
+            for (let attempt = 0; attempt < 12; attempt++) {
+                ctx.drawImage(video, 0, 0);
+                const results = await faceapi.detectAllFaces(canvas).withFaceLandmarks().withFaceDescriptors();
+
+                if (results.length === 0) {
+                    livenessTag.innerText = 'Keep your face in view…';
+                } else if (results.length > 1) {
+                    livenessTag.innerText = 'Only one person may be in frame';
+                } else {
+                    const r = results[0];
+                    const area = r.detection.box.width * r.detection.box.height;
+                    if (area < MIN_FACE_AREA || ear(r.landmarks.positions) < EYE_CLOSED) {
+                        livenessTag.innerText = 'Keep eyes open and face centered…';
+                    } else {
+                        chosen = r;
+                        break;
+                    }
+                }
+                await new Promise((res) => setTimeout(res, 150));
+            }
+
+            if (!chosen) {
+                throw new Error('Could not capture a clear single face. Please retry in good lighting.');
+            }
+
+            const liveDescriptor = Array.from(chosen.descriptor);
+
+            // small audit snapshot (160px jpeg)
+            const snapCanvas = document.createElement('canvas');
+            const scale = 160 / canvas.width;
+            snapCanvas.width = 160; snapCanvas.height = Math.round(canvas.height * scale);
+            snapCanvas.getContext('2d').drawImage(canvas, 0, 0, snapCanvas.width, snapCanvas.height);
+            const snapshot = snapCanvas.toDataURL('image/jpeg', 0.65);
+
+            setStatus('Submitting to server for verification…', 'info');
+            setStep('s3', 'active');
+
+            const begin = await fetch('face_verify_api.php', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'begin' })
+            }).then(r => r.json());
+            if (!begin.success) throw new Error(begin.message || 'Could not start verification.');
+
+            const res = await fetch('face_verify_api.php', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'match',
+                    nonce: begin.nonce,
+                    live_descriptor: liveDescriptor,
+                    ref_descriptor: referenceDescriptor,
+                    snapshot: snapshot
+                })
+            }).then(r => r.json());
+            if (!res.success) throw new Error(res.message || 'Server rejected the attempt.');
+
+            if (res.matched) {
+                setStep('s3', 'done');
+                setStatus('✅ Identity verified! Match score ' + res.distance.toFixed(3) + '. Redirecting…', 'success');
+                await stopCamera();
+                setTimeout(() => { window.location.href = res.redirect || 'dashboard.php'; }, 1200);
+            } else {
+                setStatus('❌ Face did not match closely enough (score ' + res.distance.toFixed(3) + ' / threshold ' + res.threshold + '). Please retry or use fingerprint verification.', 'warning');
+                setStep('s3', '');
+                setStep('s2', '');
+                verifyBtn.disabled = false;
+                stopCamera();
+            }
+        } catch (err) {
+            setStatus('Verification failed: ' + err.message, 'danger');
+            setStep('s2', '');
+            setStep('s3', '');
+            verifyBtn.disabled = false;
+            stopCamera();
+        }
+    }
+
+    // ---------- start flow ----------
+    verifyBtn.addEventListener('click', async () => {
+        if (!referenceDescriptor) return;
+        verifyBtn.disabled = true;
+        try {
+            if (!navigator.mediaDevices || !window.isSecureContext) {
+                throw new Error('Camera access needs localhost or HTTPS.');
+            }
+            setStatus('Accessing webcam…', 'info');
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: { width: 640, height: 480 }
+            });
+            video.srcObject = stream;
+            videoWrap.classList.remove('d-none');
+            await new Promise((res) => { video.onloadedmetadata = res; });
+            await video.play();
+            setStatus('Liveness check: blink ' + BLINKS_NEEDED + ' times when prompted.', 'primary');
+            startLivenessLoop();
+        } catch (err) {
+            setStatus('Could not start the camera: ' + err.message, 'danger');
+            verifyBtn.disabled = false;
+        }
+    });
+
+    window.addEventListener('beforeunload', stopCamera);
+    window.addEventListener('load', init);
+})();
+</script>
 </body>
 </html>

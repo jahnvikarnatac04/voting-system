@@ -34,14 +34,32 @@ try {
 
 // Check face verification session flag
 $is_face_verified = !empty($_SESSION['face_verified']) && $_SESSION['face_verified'] === true;
-$has_fp = !empty($voters['fingerprint_credential']);
+
+// Server-verified fingerprint / passkey credentials for this voter
+$fp_count = 0;
+try {
+    $fp_stmt = $pdo->prepare("SELECT COUNT(*) AS c FROM passkeys WHERE voter_id = ?");
+    $fp_stmt->execute([$vid]);
+    $fp_count = (int)$fp_stmt->fetch(PDO::FETCH_ASSOC)['c'];
+} catch (PDOException $e) {
+    $fp_count = 0;
+}
+$has_fp = $fp_count > 0;
 $has_voted = ((int)($voters['has_voted'] ?? 0) === 1) || (strtolower(trim($voters['voting'] ?? '')) === 'yes');
 
-// Fetch candidate / party list
+// Fetch candidate / party list — filtered to the voter's Parliamentary
+// Constituency (seeded real ballots), plus any unassigned legacy rows.
+$region = trim($_SESSION['selected_constituency'] ?? '');
 $candidates_list = [];
 try {
-    $candidates_stmt = $pdo->query("SELECT * FROM candidates ORDER BY id ASC");
-    $candidates_list = $candidates_stmt->fetchAll(PDO::FETCH_ASSOC);
+    if ($region !== '') {
+        $candidates_stmt = $pdo->prepare("SELECT * FROM candidates WHERE constituency = ? OR constituency = '' ORDER BY id ASC");
+        $candidates_stmt->execute([$region]);
+        $candidates_list = $candidates_stmt->fetchAll(PDO::FETCH_ASSOC);
+    } else {
+        $candidates_stmt = $pdo->query("SELECT * FROM candidates ORDER BY id ASC");
+        $candidates_list = $candidates_stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 } catch (PDOException $e) {
     try {
         $groups_stmt = $pdo->query("SELECT id, name, name AS party, image AS photo FROM groups ORDER BY id ASC");
@@ -206,10 +224,14 @@ try {
                                     <span class="badge badge-secondary px-2 py-1">Face Not Verified</span>
                                 <?php endif; ?>
                                 <?php if ($has_fp): ?>
-                                    <span class="badge badge-success px-2 py-1">Fingerprint Enrolled</span>
+                                    <span class="badge badge-success px-2 py-1">Fingerprint Enrolled (<?= $fp_count; ?>)</span>
                                 <?php else: ?>
                                     <span class="badge badge-secondary px-2 py-1">Fingerprint Not Set</span>
                                 <?php endif; ?>
+                                <br>
+                                <a href="add_passkey.php" class="small" style="color: blueviolet;">
+                                    <?= $has_fp ? 'Manage Fingerprints / Passkeys' : 'Enroll Fingerprint Now'; ?>
+                                </a>
                             </td>
                         </tr>
                         <tr>
@@ -235,7 +257,9 @@ try {
             <!-- Right Side: Available Parties Table -->
             <div class="col-md-8">
                 <div id="right-side">
-                    <h4 class="parties-heading">AVAILABLE PARTIES FOR VOTING</h4>
+                    <h4 class="parties-heading">
+                        AVAILABLE CANDIDATES<?= $region !== '' ? ' — ' . htmlspecialchars($region) : ' FOR VOTING'; ?>
+                    </h4>
 
                     <?php if (!$has_voted && !$is_face_verified): ?>
                         <div class="alert alert-warning text-center py-2 mb-3">

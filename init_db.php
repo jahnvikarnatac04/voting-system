@@ -54,6 +54,40 @@ try {
         // Column already exists, ignore
     }
 
+    // 2.5 Create Passkeys (WebAuthn / Fingerprint) Table
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS passkeys (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            voter_id INTEGER NOT NULL,
+            credential_id TEXT NOT NULL UNIQUE,
+            public_key TEXT NOT NULL,
+            alg INTEGER NOT NULL DEFAULT -7,
+            sign_count INTEGER NOT NULL DEFAULT 0,
+            device_label TEXT DEFAULT '',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+    ");
+
+    try {
+        $pdo->exec("CREATE INDEX IF NOT EXISTS idx_passkeys_voter ON passkeys(voter_id)");
+    } catch (PDOException $e) {
+        // ignore
+    }
+
+    // 2.6 Create Biometric Verification Audit Log Table
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS biometric_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            voter_id INTEGER NOT NULL,
+            method TEXT NOT NULL DEFAULT 'face',
+            matched INTEGER NOT NULL DEFAULT 0,
+            distance REAL,
+            image_file TEXT DEFAULT '',
+            ip_address TEXT DEFAULT '',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+    ");
+
     // 3. Create Candidates Table
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS candidates (
@@ -62,6 +96,7 @@ try {
             party TEXT NOT NULL,
             photo TEXT DEFAULT 'default.png',
             votes_count INTEGER NOT NULL DEFAULT 0,
+            constituency TEXT DEFAULT '',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
     ");
