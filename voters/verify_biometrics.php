@@ -34,9 +34,8 @@ $has_fp = (int)$fp_stmt->fetch(PDO::FETCH_ASSOC)['c'] > 0;
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fingerprint Verification - Voting</title>
     <link rel="stylesheet" href="../bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../css/app.css">
     <style>
-        :root { --primary-color: blueviolet; --primary-hover: #701eb8; }
-        body { background-color: #f8f9fa; font-family: Arial, sans-serif; }
         .verify-card {
             background: #fff;
             border-radius: 12px;
@@ -59,6 +58,7 @@ $has_fp = (int)$fp_stmt->fetch(PDO::FETCH_ASSOC)['c'] > 0;
         .btn-custom:hover { background-color: #218838; color: #fff; }
         .btn-custom:disabled { background-color: #a9d5b5; cursor: not-allowed; }
     </style>
+    <link rel="stylesheet" href="../css/ui.css">
 </head>
 <body>
 

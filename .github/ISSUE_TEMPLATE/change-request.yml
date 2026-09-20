@@ -1,0 +1,71 @@
+name: Change Request
+description: Propose a controlled change (SI.1). Every change starts here.
+title: "CR: <short title>"
+labels: ["change-request", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        See `docs/process/procedures/change-management.md`.
+        Keep it concrete; acceptance criteria must be **testable**.
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation (why)
+      description: What problem does this solve?
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: What is in scope, what is out of scope, which files/modules?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: Change type
+      options:
+        - Feature
+        - Defect
+        - Refactor
+        - Process / docs
+        - Security
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact assessment
+      description: Schema/DB, security (auth, ballot, secrets, RP ID), audit logging, dependencies, docs.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: One testable criterion per line.
+      placeholder: |
+        - [ ] Given ..., when ..., then ...
+    validations:
+      required: true
+
+  - type: input
+    id: tailoring
+    attributes:
+      label: Tailoring
+      description: Process steps being tailored and why (or "none").
+
+  - type: input
+    id: owner
+    attributes:
+      label: Owner (role)
+      placeholder: PM / Tech Lead / Developer
+    validations:
+      required: true

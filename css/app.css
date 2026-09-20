@@ -1,0 +1,83 @@
+/* ---------------------------------------------------------------------------
+   app.css — shared design tokens and components.
+   ---------------------------------------------------------------------------
+   Loaded after bootstrap.min.css and BEFORE each page's own <style> block, so
+   a page can still override anything defined here.
+
+   Everything in this file is deliberately limited to declarations that were
+   already identical (or a strict subset) on every page that used them, so
+   loading it changes nothing on its own — it only removes the need for each
+   page to repeat them.
+   --------------------------------------------------------------------------- */
+
+:root {
+    --primary-color: blueviolet;
+    --primary-hover: #701eb8;
+    --bg-light: #f8f9fa;
+    --border-light: #e9ecef;
+    --muted-text: #777777;
+    --disabled-primary: #c9b8dc;
+}
+
+body {
+    background-color: var(--bg-light);
+    font-family: Arial, sans-serif;
+}
+
+/* --- Page header ---------------------------------------------------------- */
+
+.header {
+    background-color: var(--primary-color);
+    color: #ffffff;
+}
+
+/* --- Primary action button ------------------------------------------------ */
+
+/* NB: deliberately does not touch `border`. Bootstrap's .btn sets
+   `1px solid transparent`, and overriding it here would shrink only the
+   .btn-custom buttons, misaligning them against sibling .btn elements. */
+.btn-custom {
+    background-color: var(--primary-color);
+    color: #ffffff;
+    font-weight: bold;
+}
+
+.btn-custom:hover {
+    background-color: var(--primary-hover);
+    color: #ffffff;
+}
+
+.btn-custom:disabled {
+    background-color: var(--disabled-primary);
+    cursor: not-allowed;
+}
+
+/* --- Small pill labels used by the booth and voter screens ---------------- */
+
+.voter-chip {
+    background: #f3e8ff;
+    border: 1px solid #d1c4e9;
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-weight: bold;
+    color: var(--primary-color);
+    display: inline-block;
+}
+
+.booth-chip {
+    background: rgba(255, 255, 255, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: .85rem;
+    font-weight: bold;
+}
+
+/* --- Footer --------------------------------------------------------------- */
+
+footer {
+    text-align: center;
+    color: var(--muted-text);
+    border-top: 1px solid var(--border-light);
+    background-color: #ffffff;
+}

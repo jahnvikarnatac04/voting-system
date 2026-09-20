@@ -16,6 +16,14 @@
  * ---------------------------------------------------------------
  */
 
+/**
+ * This endpoint ALWAYS returns JSON. Warnings/notices/deprecations must never
+ * be echoed into the body — the client's JSON.parse would fail and a ceremony
+ * that actually succeeded would look broken. They still reach the PHP error
+ * log. (Triggered originally by the PHP 8.1 base64_encode(null) deprecation.)
+ */
+ini_set('display_errors', '0');
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -43,26 +51,80 @@ if (!is_array($body)) {
 }
 $action = trim($body['action'] ?? '');
 
-/**
- * True when a logged-in election admin has armed a booth enrollment for a
- * specific voter (admin/enroll_voter.php). Admins may NOT create passkeys
- * for their own admin accounts — biometrics belong to voters only.
- */
-function wa_is_admin_enrollment()
+/** Booth id for an unlocked phone-kiosk session, or null. */
+function wa_kiosk_booth_id()
 {
-    return !empty($_SESSION['admin_id'])
-        && !empty($_SESSION['admin_enroll_vid'])
-        && (int)$_SESSION['admin_enroll_vid'] > 0;
+    return !empty($_SESSION['kiosk_booth_id']) ? (int)$_SESSION['kiosk_booth_id'] : null;
+}
+
+/**
+ * The voter currently armed for ENROLLMENT, plus the booth it happens at.
+ * Only a booth kiosk arms enrollment (kiosk/index.php); the old admin-side
+ * console (admin/enroll_voter.php) was removed. Returns null when nothing
+ * is armed.
+ */
+function wa_booth_enrollment()
+{
+    if (wa_kiosk_booth_id() !== null && !empty($_SESSION['kiosk_enroll_vid'])) {
+        return [
+            'voter_id' => (int)$_SESSION['kiosk_enroll_vid'],
+            'booth_id' => wa_kiosk_booth_id(),
+            'by'       => 'kiosk',
+        ];
+    }
+    return null;
+}
+
+/**
+ * The voter currently armed for booth VERIFICATION (identity check-in),
+ * or null. Distinct from enrollment: verification confirms a citizen
+ * against an ALREADY enrolled credential.
+ */
+function wa_verify_context()
+{
+    if (wa_kiosk_booth_id() !== null && !empty($_SESSION['kiosk_verify_vid'])) {
+        return [
+            'voter_id' => (int)$_SESSION['kiosk_verify_vid'],
+            'booth_id' => wa_kiosk_booth_id(),
+            'by'       => 'kiosk',
+        ];
+    }
+    return null;
+}
+
+/** Append to the biometric audit trail (never throws). */
+function wa_log_biometric($pdo, $voter_id, $method, $matched, $distance = null, $image_file = '', $booth_id = null)
+{
+    try {
+        $stmt = $pdo->prepare(
+            "INSERT INTO biometric_logs (voter_id, method, matched, distance, image_file, ip_address, booth_id)
+             VALUES (?, ?, ?, ?, ?, ?, ?)"
+        );
+        $stmt->execute([
+            (int)$voter_id,
+            $method,
+            $matched ? 1 : 0,
+            $distance,
+            $image_file,
+            $_SERVER['REMOTE_ADDR'] ?? '',
+            $booth_id !== null ? (int)$booth_id : null,
+        ]);
+    } catch (PDOException $e) {
+        // Logging must never break a ceremony.
+    }
 }
 
 /** Current voter: logged-in session, a voter mid signup (temp_fp_voter_id),
- *  or a booth enrollment target armed by the logged-in election admin. */
+ *  or a booth enrollment target armed by an admin or an unlocked kiosk. */
 function wa_target_voter($pdo)
 {
     $id = $_SESSION['vid'] ?? $_SESSION['temp_fp_voter_id'] ?? null;
 
-    if ($id === null && wa_is_admin_enrollment()) {
-        $id = (int)$_SESSION['admin_enroll_vid'];
+    if ($id === null) {
+        $ctx = wa_booth_enrollment();
+        if ($ctx !== null) {
+            $id = $ctx['voter_id'];
+        }
     }
     if ($id === null) {
         return null;
@@ -136,6 +198,11 @@ switch ($action) {
             wa_json_error('Your registration session expired. Please log in again.', 401);
         }
         try {
+            // Capture the arming context BEFORE verifying: this tells us
+            // which booth (if any) the enrollment belongs to.
+            $enroll_ctx = wa_booth_enrollment();
+            $booth_id   = $enroll_ctx['booth_id'] ?? null;
+
             $cred = wa_verify_registration($body['credential'] ?? [], (int)$voter['id']);
 
             $dup = $pdo->prepare("SELECT id FROM passkeys WHERE credential_id = ? LIMIT 1");
@@ -146,8 +213,8 @@ switch ($action) {
 
             $label = trim($body['label'] ?? '');
             $insert = $pdo->prepare(
-                "INSERT INTO passkeys (voter_id, credential_id, public_key, alg, sign_count, device_label)
-                 VALUES (?, ?, ?, ?, ?, ?)"
+                "INSERT INTO passkeys (voter_id, credential_id, public_key, alg, sign_count, device_label, booth_id)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)"
             );
             $insert->execute([
                 (int)$voter['id'],
@@ -156,25 +223,32 @@ switch ($action) {
                 $cred['alg'],
                 $cred['sign_count'],
                 $label,
+                $booth_id,
             ]);
+
+            // Audit the enrollment against the booth it happened at.
+            wa_log_biometric($pdo, (int)$voter['id'], 'passkey_enroll', 1, null, '', $booth_id);
 
             // Mid-signup enrollment finished -> clear the temporary flag
             if (isset($_SESSION['temp_fp_voter_id'])) {
                 unset($_SESSION['temp_fp_voter_id']);
             }
 
-            // Booth enrollment done -> disarm the admin target so the next
-            // scan is never accidentally saved against the same voter.
-            if (wa_is_admin_enrollment()) {
-                $done_vid  = (int)$_SESSION['admin_enroll_vid'];
-                $done_name = (string)($_SESSION['admin_enroll_name'] ?? '');
-                unset($_SESSION['admin_enroll_vid'], $_SESSION['admin_enroll_name']);
+            // Booth enrollment done -> disarm the target so the next scan is
+            // never accidentally saved against the same voter.
+            if ($enroll_ctx !== null) {
+                $done_vid  = (int)$enroll_ctx['voter_id'];
+                $done_name = (string)($_SESSION['kiosk_enroll_name']
+                    ?? $voter['fullname']
+                    ?? '');
+                unset($_SESSION['kiosk_enroll_vid'], $_SESSION['kiosk_enroll_name']);
                 wa_json([
                     'success'        => true,
                     'credential_id'  => $cred['credential_id'],
                     'booth_mode'     => true,
                     'enrolled_vid'   => $done_vid,
                     'enrolled_name'  => $done_name,
+                    'booth_id'       => $booth_id,
                 ]);
                 // no break
             }
@@ -257,7 +331,9 @@ switch ($action) {
         }
         // no break
 
-    /* ---------------- Fingerprint check before voting ---------------- */
+    /* ---------------- Identity verification (fingerprint) ---------------- */
+    /* Ballot CASTING happens at the booth kiosk (kiosk/vote.php). These actions
+       remain for the voter portal's standalone identity-verification page. */
 
     case 'vote_begin':
         wa_begin_guard();
@@ -308,6 +384,87 @@ switch ($action) {
             $_SESSION['face_verified'] = true; // biometric gate for ballot access
             wa_json(['success' => true, 'redirect' => 'dashboard.php']);
         } catch (Exception $e) {
+            wa_json_error($e->getMessage(), 400, 'VERIFY_FAILED');
+        }
+        // no break
+
+    /* ---------------- Booth verification (identity check-in) ---------------- */
+
+    /**
+     * verify_begin / verify_finish confirm a citizen against an ALREADY
+     * enrolled credential — the kiosk "prove who you are" step, separate
+     * from enrollment and from the pre-vote fingerprint check. Only the
+     * armed citizen's credentials are offered (allowCredentials), so the
+     * browser cannot quietly satisfy it with someone else's passkey.
+     */
+    case 'verify_begin':
+        wa_begin_guard();
+        $ctx = wa_verify_context();
+        if ($ctx === null) {
+            wa_json_error('No citizen is armed for verification. Select one at the booth first.', 409, 'NO_TARGET');
+        }
+        $cred_ids = wa_voter_passkey_ids($pdo, $ctx['voter_id']);
+        if (empty($cred_ids)) {
+            wa_json_error('This citizen has no fingerprint enrolled yet.', 409, 'NO_CREDENTIAL');
+        }
+        $challenge = wa_store_challenge('login');
+        wa_json([
+            'success' => true,
+            'options' => [
+                'challenge'        => $challenge,
+                'rpId'             => wa_rp_id(),
+                'timeout'          => 120000,
+                'userVerification' => 'required',
+                'allowCredentials' => array_map(
+                    fn($id) => ['type' => 'public-key', 'id' => $id],
+                    $cred_ids
+                ),
+            ],
+        ]);
+        // no break
+
+    case 'verify_finish':
+        $ctx = wa_verify_context();
+        if ($ctx === null) {
+            wa_json_error('No citizen is armed for verification.', 409, 'NO_TARGET');
+        }
+        $verify_vid = (int)$ctx['voter_id'];
+        try {
+            $cred_id = trim($body['credential']['id'] ?? '');
+            $stmt = $pdo->prepare("SELECT * FROM passkeys WHERE voter_id = ? AND credential_id = ? LIMIT 1");
+            $stmt->execute([$verify_vid, $cred_id]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$row) {
+                wa_log_biometric($pdo, $verify_vid, 'passkey_verify', 0, null, '', $ctx['booth_id']);
+                wa_json_error('No matching fingerprint for this citizen.', 400, 'NO_CREDENTIAL');
+            }
+
+            $result = wa_verify_assertion(
+                $body['credential'] ?? [],
+                ['pem' => $row['public_key'], 'alg' => (int)$row['alg'], 'sign_count' => (int)$row['sign_count']],
+                $verify_vid
+            );
+
+            $upd = $pdo->prepare("UPDATE passkeys SET sign_count = ? WHERE id = ?");
+            $upd->execute([$result['sign_count'], (int)$row['id']]);
+
+            wa_log_biometric($pdo, $verify_vid, 'passkey_verify', 1, null, '', $ctx['booth_id']);
+
+            // Booth check-in state for the kiosk UI; cleared when the next
+            // citizen is armed.
+            $_SESSION['booth_verified_vid']  = $verify_vid;
+            $_SESSION['booth_verified_name'] = (string)($_SESSION['kiosk_verify_name'] ?? $row['device_label'] ?? '');
+            $_SESSION['booth_verified_at']   = time();
+            unset($_SESSION['kiosk_verify_vid'], $_SESSION['kiosk_verify_name']);
+
+            wa_json([
+                'success'      => true,
+                'verified_vid' => $verify_vid,
+                'booth_id'     => $ctx['booth_id'],
+            ]);
+        } catch (Exception $e) {
+            wa_log_biometric($pdo, $verify_vid, 'passkey_verify', 0, null, '', $ctx['booth_id']);
             wa_json_error($e->getMessage(), 400, 'VERIFY_FAILED');
         }
         // no break

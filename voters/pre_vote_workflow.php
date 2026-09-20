@@ -45,12 +45,8 @@ if (!empty($_SESSION['pre_vote_workflow_completed'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Voter Declaration — Online Voting System</title>
     <link rel="stylesheet" href="../bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../css/app.css">
     <style>
-        :root {
-            --primary-color: blueviolet;
-            --primary-hover: #701eb8;
-            --bg-light: #f8f9fa;
-        }
 
         body {
             background-color: var(--bg-light);
@@ -207,16 +203,6 @@ if (!empty($_SESSION['pre_vote_workflow_completed'])) {
             font-size: 15px;
         }
 
-        .btn-custom:hover {
-            background-color: var(--primary-hover);
-            color: #ffffff;
-        }
-
-        .btn-custom:disabled {
-            background-color: #c9b8dc;
-            cursor: not-allowed;
-        }
-
         .btn-proceed {
             background-color: #28a745;
             color: #ffffff;
@@ -291,6 +277,7 @@ if (!empty($_SESSION['pre_vote_workflow_completed'])) {
             margin-top: auto;
         }
     </style>
+    <link rel="stylesheet" href="../css/ui.css">
 </head>
 <body>
 

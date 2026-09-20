@@ -35,9 +35,8 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Fingerprints / Passkeys - Online Voting System</title>
     <link rel="stylesheet" href="../bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../css/app.css">
     <style>
-        :root { --primary-color: blueviolet; --primary-hover: #701eb8; }
-        body { background-color: #f8f9fa; font-family: Arial, sans-serif; }
         .fp-card {
             background: #fff;
             border-radius: 12px;
@@ -54,10 +53,9 @@ try {
             border: none;
             width: 100%;
         }
-        .btn-custom:hover { background-color: var(--primary-hover); color: #fff; }
-        .btn-custom:disabled { background-color: #c9b8dc; cursor: not-allowed; }
         .passkey-row { display: flex; justify-content: space-between; align-items: center; }
     </style>
+    <link rel="stylesheet" href="../css/ui.css">
 </head>
 <body>
 

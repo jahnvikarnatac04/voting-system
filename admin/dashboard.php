@@ -70,13 +70,10 @@ try {
     <title>Admin Dashboard - Online Voting System</title>
 
     <link rel="stylesheet" href="../bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../css/app.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
-        :root {
-            --primary-color: blueviolet;
-            --primary-hover: #701eb8;
-        }
 
         body {
             background-color: #f8f9fc;
@@ -161,18 +158,8 @@ try {
             border: 1px solid #ddd;
             background-color: #f0f0f0;
         }
-
-        .btn-custom {
-            background-color: var(--primary-color);
-            color: #ffffff;
-            font-weight: bold;
-        }
-
-        .btn-custom:hover {
-            background-color: var(--primary-hover);
-            color: #ffffff;
-        }
     </style>
+    <link rel="stylesheet" href="../css/ui.css">
 </head>
 <body>
 
@@ -180,8 +167,11 @@ try {
     <div class="container-fluid header">
         <h4 class="m-0 font-weight-bold">Online Voting System — Admin Panel</h4>
         <div>
-            <a href="enroll_voter.php" class="btn btn-warning btn-sm font-weight-bold mr-2" title="Admin-only: pre-enroll a voter's fingerprint at the booth">
-                🖐️ Register Biometrics / Enroll Voter
+            <a href="onboard_voter.php" class="btn btn-warning btn-sm font-weight-bold mr-2" title="Admin-only: register a walk-in citizen; their fingerprint is enrolled at a booth kiosk">
+                ➕ Onboard Citizen
+            </a>
+            <a href="booths.php" class="btn btn-info btn-sm font-weight-bold mr-2" title="Manage polling-station kiosks and their booth codes">
+                📍 Booths &amp; Kiosks
             </a>
             <a href="verify_pair.php" class="btn btn-info btn-sm font-weight-bold mr-2" title="Generate a one-time code to pair the booth phone">
                 📱 Pair Booth Phone
@@ -243,6 +233,7 @@ try {
                 </div>
             </div>
 
+            <div class="table-responsive">
             <table class="table table-bordered table-striped text-center align-middle m-0">
                 <thead class="thead-dark">
                     <tr>
@@ -286,6 +277,7 @@ try {
                     <?php endif; ?>
                 </tbody>
             </table>
+            </div>
         </div>
 
         <!-- SECTION 2: Citizen ID Verification Panel -->
@@ -295,6 +287,7 @@ try {
                 <span class="badge badge-warning px-3 py-2">Pending Review: <?= $total_pending_verifications; ?></span>
             </div>
 
+            <div class="table-responsive">
             <table class="table table-bordered table-hover text-center align-middle m-0">
                 <thead class="thead-dark">
                     <tr>
@@ -360,6 +353,7 @@ try {
                     <?php endif; ?>
                 </tbody>
             </table>
+            </div>
         </div>
 
         <!-- SECTION 3: Split Ratio Gauge Bar -->
@@ -462,6 +456,7 @@ try {
                 </div>
             </div>
 
+            <div class="table-responsive">
             <table class="table table-bordered table-hover text-center align-middle m-0" id="voters-table">
                 <thead class="thead-dark">
                     <tr>
@@ -518,17 +513,9 @@ try {
                         </td>
                         <td class="align-middle">
                             <?php if (isset($enrolled_map[(int)$voter['id']])): ?>
-                                <a href="enroll_voter.php?vid=<?= (int)$voter['id']; ?>"
-                                   class="badge badge-success px-2 py-1"
-                                   style="text-decoration: none;"
-                                   title="Manage this voter's biometrics at the booth">
-                                    ✔ Enrolled</a>
+                                <span class="badge badge-success px-2 py-1" title="Fingerprint enrolled">✔ Enrolled</span>
                             <?php else: ?>
-                                <a href="enroll_voter.php?vid=<?= (int)$voter['id']; ?>"
-                                   class="badge badge-primary px-2 py-1"
-                                   style="text-decoration: none;"
-                                   title="Pre-enroll this voter's biometrics at the booth">
-                                    + Enroll</a>
+                                <span class="badge badge-secondary px-2 py-1" title="Fingerprint is enrolled at a booth kiosk">Not enrolled</span>
                             <?php endif; ?>
                         </td>
                     </tr>
@@ -538,6 +525,7 @@ try {
                     <?php endif; ?>
                 </tbody>
             </table>
+            </div>
         </div>
 
     </div>

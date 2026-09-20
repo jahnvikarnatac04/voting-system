@@ -88,6 +88,49 @@ try {
         );
     ");
 
+    // 2.7 Create Booths Table (physical polling-station kiosk terminals)
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS booths (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            code TEXT NOT NULL UNIQUE,
+            name TEXT NOT NULL,
+            state TEXT DEFAULT '',
+            constituency TEXT DEFAULT '',
+            pin_hash TEXT NOT NULL,
+            active INTEGER NOT NULL DEFAULT 1,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+    ");
+
+    // 2.8 Create Kiosk auth attempt log (rate-limiting)
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS kiosk_auth_attempts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            booth_code TEXT DEFAULT '',
+            ip_address TEXT DEFAULT '',
+            success INTEGER NOT NULL DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+    ");
+
+    // 2.9 Seed a demo booth so the kiosk can be unlocked immediately
+    $demo_booth_code = 'BOOTH-001';
+    $demo_booth_pin  = '123456';
+    $booth_check = $pdo->prepare("SELECT id FROM booths WHERE code = ? LIMIT 1");
+    $booth_check->execute([$demo_booth_code]);
+    if (!$booth_check->fetch()) {
+        $booth_ins = $pdo->prepare(
+            "INSERT INTO booths (code, name, state, constituency, pin_hash, active) VALUES (?, ?, ?, ?, ?, 1)"
+        );
+        $booth_ins->execute([
+            $demo_booth_code,
+            'Demo Polling Station',
+            '',
+            '',
+            password_hash($demo_booth_pin, PASSWORD_DEFAULT),
+        ]);
+    }
+
     // 3. Create Candidates Table
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS candidates (
@@ -143,6 +186,8 @@ try {
            . "Username: <code>" . htmlspecialchars($adm['username']) . "</code> | Password: <code>" . htmlspecialchars($adm['password']) . "</code></li><br>";
     }
     echo "</ul>";
+    echo "<p><strong>Demo booth kiosk (phone terminal):</strong> open <code>kiosk/login.php</code> and unlock with booth code "
+       . "<code>" . htmlspecialchars($demo_booth_code) . "</code> / PIN <code>" . htmlspecialchars($demo_booth_pin) . "</code></p>";
     echo "<p><a href='admin/login.php'>Go to Admin Login &rarr;</a></p>";
 
 } catch (PDOException $e) {

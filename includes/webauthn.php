@@ -25,6 +25,11 @@ if (session_status() === PHP_SESSION_NONE) {
 
 function wa_b64url_encode($bin)
 {
+    // PHP 8.1 deprecates passing null to string parameters; normalize here so a
+    // stray null can never emit a notice into a JSON response body.
+    if (!is_string($bin)) {
+        $bin = $bin === null ? '' : (string)$bin;
+    }
     return rtrim(strtr(base64_encode($bin), '+/', '-_'), '=');
 }
 
@@ -43,6 +48,83 @@ function wa_b64url_decode($s)
         throw new Exception('Invalid base64url value.');
     }
     return $bin;
+}
+
+/* ---------------- configuration ---------------- */
+
+/**
+ * Read a WebAuthn setting. Precedence:
+ *   1. includes/config.php  (returns an associative array)
+ *   2. environment variable of the same name
+ *   3. $default
+ *
+ * Useful keys:
+ *   WEBAUTHN_RP_ID            e.g. "vote.example.org"
+ *   WEBAUTHN_ALLOWED_ORIGINS  comma-separated, e.g.
+ *                             "https://vote.example.org,https://booth.example.org"
+ *
+ * When neither is configured the RP ID / expected origin are derived
+ * from the request Host header (previous behaviour, fine for localhost
+ * and single-host deployments).
+ */
+function wa_config($key, $default = null)
+{
+    static $cfg = null;
+    if ($cfg === null) {
+        $cfg = [];
+        $file = __DIR__ . '/config.php';
+        if (is_file($file)) {
+            $loaded = include $file;
+            if (is_array($loaded)) {
+                $cfg = $loaded;
+            }
+        }
+    }
+    if (array_key_exists($key, $cfg)) {
+        return $cfg[$key];
+    }
+    $env = getenv($key);
+    if ($env !== false && $env !== '') {
+        return $env;
+    }
+    return $default;
+}
+
+/** Configured RP ID, or '' when unset. */
+function wa_configured_rp_id()
+{
+    $v = wa_config('WEBAUTHN_RP_ID', '');
+    return is_string($v) ? trim(strtolower($v)) : '';
+}
+
+/**
+ * The configured origin allowlist, or null to fall back to the
+ * request-derived origin. Entries are normalised: lower-cased, no
+ * trailing slash.
+ */
+function wa_allowed_origins()
+{
+    $v = wa_config('WEBAUTHN_ALLOWED_ORIGINS', '');
+    if (is_array($v)) {
+        $list = $v;
+    } else {
+        $list = explode(',', (string)$v);
+    }
+    $list = array_values(array_filter(array_map(static function ($o) {
+        return rtrim(strtolower(trim((string)$o)), '/');
+    }, $list), static fn($o) => $o !== ''));
+
+    return empty($list) ? null : $list;
+}
+
+/** Origins accepted in clientDataJSON (allowlist, else derived origin). */
+function wa_expected_origins()
+{
+    $allowed = wa_allowed_origins();
+    if ($allowed !== null) {
+        return $allowed;
+    }
+    return [strtolower(wa_origin())];
 }
 
 /* ---------------- RP / origin helpers ---------------- */
@@ -76,11 +158,11 @@ function wa_is_https()
 }
 
 /**
- * Effective RP ID: hostname without port, lowercased, and with any
- * trailing dot stripped (browsers send "trycloudflare.com." as a
- * fully-qualified Host on some platforms).
+ * RP ID derived from the request Host header: hostname without port,
+ * lowercased, trailing dot stripped (browsers may send a FQDN Host
+ * such as "trycloudflare.com.").
  */
-function wa_rp_id()
+function wa_derive_rp_id()
 {
     $host = wa_host_header();
     if (strncmp($host, '[', 1) === 0) { // IPv6 literal, e.g. [::1]:8000
@@ -89,6 +171,29 @@ function wa_rp_id()
     }
     $host = strtolower(explode(':', $host)[0]);
     return rtrim($host, '.');
+}
+
+/**
+ * Effective RP ID.
+ *
+ * A kiosk MUST have a stable RP ID: if this is derived from the Host
+ * header, any hostname change (e.g. a rotating quick-tunnel URL)
+ * invalidates every previously enrolled passkey. Set WEBAUTHN_RP_ID
+ * (or includes/config.php) to pin it in production.
+ */
+function wa_rp_id()
+{
+    $configured = wa_configured_rp_id();
+    if ($configured !== '') {
+        return rtrim($configured, '.');
+    }
+    return wa_derive_rp_id();
+}
+
+/** True when the request Host is a loopback name (dev-only secure context). */
+function wa_host_is_loopback()
+{
+    return in_array(wa_derive_rp_id(), ['localhost', '127.0.0.1', '::1'], true);
 }
 
 /** Full origin (scheme://host[:port]) as the browser sees it. */
@@ -106,7 +211,7 @@ function wa_secure_context_ok()
     if (wa_is_https()) {
         return true;
     }
-    return in_array(wa_rp_id(), ['localhost', '127.0.0.1', '::1'], true);
+    return wa_host_is_loopback();
 }
 
 /* ---------------- DER encoding (for COSE -> PEM) ---------------- */
@@ -320,6 +425,10 @@ function wa_pem($der)
 
 /* ---------------- clientDataJSON checks ---------------- */
 
+/**
+ * Validates clientDataJSON. $expected_origin may be a single origin or
+ * an allowlist array (see wa_expected_origins()).
+ */
 function wa_verify_client_data($raw_json, $expected_type, $expected_challenge, $expected_origin)
 {
     $data = json_decode($raw_json, true);
@@ -332,7 +441,11 @@ function wa_verify_client_data($raw_json, $expected_type, $expected_challenge, $
     if (($data['challenge'] ?? '') !== $expected_challenge) {
         throw new Exception('Challenge mismatch — possible replay.');
     }
-    if (($data['origin'] ?? '') !== $expected_origin) {
+    $origin = strtolower((string)($data['origin'] ?? ''));
+    $allowed = is_array($expected_origin)
+        ? array_map('strtolower', $expected_origin)
+        : [strtolower((string)$expected_origin)];
+    if (!in_array($origin, $allowed, true)) {
         throw new Exception('Origin mismatch.');
     }
     return $data;
@@ -406,8 +519,8 @@ function wa_verify_registration($payload, $expected_voter = null)
     $challenge = wa_take_challenge('register', $expected_voter);
 
     $client_raw = wa_b64url_decode($payload['response']['clientDataJSON'] ?? null);
-    $origin = wa_origin();
-    $cd = wa_verify_client_data($client_raw, 'webauthn.create', $challenge, $origin);
+    $origins = wa_expected_origins();
+    $cd = wa_verify_client_data($client_raw, 'webauthn.create', $challenge, $origins);
 
     $att_obj_raw = wa_b64url_decode($payload['response']['attestationObject'] ?? null);
     $att = wa_cbor_decode($att_obj_raw);
@@ -470,8 +583,8 @@ function wa_verify_assertion($payload, array $stored, $expected_voter = null)
     }
 
     $client_raw = wa_b64url_decode($payload['response']['clientDataJSON'] ?? null);
-    $origin = wa_origin();
-    wa_verify_client_data($client_raw, 'webauthn.get', $challenge, $origin);
+    $origins = wa_expected_origins();
+    wa_verify_client_data($client_raw, 'webauthn.get', $challenge, $origins);
 
     $ad = wa_b64url_decode($payload['response']['authenticatorData'] ?? null);
     $auth = wa_parse_auth_data($ad);
@@ -508,10 +621,12 @@ function wa_verify_assertion($payload, array $stored, $expected_voter = null)
         }
     }
 
+    // credential_id is only present in attested credential data (creation),
+    // never in a get/assertion — encode it only when it exists.
     return [
-        'voter_id'     => $voter_id,
-        'sign_count'   => $new_counter,
-        'credential_id'=> wa_b64url_encode($auth['credential_id']),
+        'voter_id'      => $voter_id,
+        'sign_count'    => $new_counter,
+        'credential_id' => $auth['credential_id'] !== null ? wa_b64url_encode($auth['credential_id']) : null,
     ];
 }
 

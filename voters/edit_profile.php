@@ -103,12 +103,9 @@ $photoPath = (!empty($current_image) && file_exists(__DIR__ . "/../images/" . $c
     <title>Edit Profile - Voter Dashboard</title>
 
     <link rel="stylesheet" href="../bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../css/app.css">
     
     <style>
-        body {
-            background-color: #f8f9fa;
-            font-family: Arial, sans-serif;
-        }
 
         .header {
             background-color: blueviolet; 
@@ -146,12 +143,8 @@ $photoPath = (!empty($current_image) && file_exists(__DIR__ . "/../images/" . $c
             font-weight: bold;
             border: none;
         }
-
-        .btn-custom:hover {
-            background-color: #701eb8;
-            color: white;
-        }
     </style>
+    <link rel="stylesheet" href="../css/ui.css">
 </head>
 <body>
 
@@ -188,7 +181,7 @@ $photoPath = (!empty($current_image) && file_exists(__DIR__ . "/../images/" . $c
 
                         <div class="form-group mb-3">
                             <label for="voter_id"><strong>Voter ID (EPIC):</strong></label>
-                            <input type="text" class="form-control" value="<?= htmlspecialchars($voter['voter_id_number'] ?? $voter['id_number'] ?? 'N/A'); ?>" disabled>
+                            <input type="text" class="form-control" id="voter_id" value="<?= htmlspecialchars($voter['voter_id_number'] ?? $voter['id_number'] ?? 'N/A'); ?>" disabled>
                             <small class="text-muted">Voter ID numbers cannot be modified.</small>
                         </div>
 

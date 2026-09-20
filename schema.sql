@@ -21,6 +21,8 @@ CREATE TABLE IF NOT EXISTS voters (
     address TEXT,
     photo TEXT,
     document_proof TEXT,
+    constituency TEXT DEFAULT '',
+    face_photo TEXT DEFAULT '',
     status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'approved', 'rejected')),
     has_voted INTEGER NOT NULL DEFAULT 0 CHECK(has_voted IN (0, 1)),
     fingerprint_credential TEXT DEFAULT NULL,

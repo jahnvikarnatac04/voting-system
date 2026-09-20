@@ -1,0 +1,196 @@
+/* ---------------------------------------------------------------------------
+   ui.css — progressive enhancement layer.
+   ---------------------------------------------------------------------------
+   Loaded AFTER each page's own <style> block so these rules win where they
+   need to (a page-level `height: 9vh` would otherwise beat a media query of
+   the same specificity).
+
+   Rule of thumb for this file: nothing here may change the desktop layout.
+   It only adds responsive behaviour, keyboard/contrast affordances and print
+   styling to what each page already defines.
+   --------------------------------------------------------------------------- */
+
+/* ---------------------------------------------------------------------------
+   1. Keyboard focus
+   Bootstrap 4 removes the default focus ring on buttons and links. Restore a
+   visible one for keyboard users only, so mouse/touch users see no change.
+   --------------------------------------------------------------------------- */
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+.btn:focus-visible,
+.btn-custom:focus-visible,
+[tabindex]:focus-visible {
+    outline: 3px solid #4d1a8c;
+    outline-offset: 2px;
+}
+
+/* Keep the ring legible on the purple header. */
+.header a:focus-visible,
+.header button:focus-visible {
+    outline-color: #ffffff;
+}
+
+/* ---------------------------------------------------------------------------
+   2. Responsive page header
+   Every page sets `height: 9vh`. That is a workable bar on a desktop but on a
+   phone it is a ~70px box that clips two-line titles such as
+   "Online Voting System — National Portal".
+   --------------------------------------------------------------------------- */
+
+@media (max-width: 767.98px) {
+    .header {
+        height: auto;
+        min-height: 56px;
+        padding: 10px 14px;
+        text-align: center;
+    }
+
+    .header h1,
+    .header h2,
+    .header h3,
+    .header h4,
+    .header h5 {
+        font-size: 1.05rem;
+        line-height: 1.35;
+    }
+}
+
+/* ---------------------------------------------------------------------------
+   3. Small-screen overflow guards
+   A few elements have fixed pixel widths that exceed a narrow phone. Let them
+   scale down instead of forcing the whole page to scroll sideways.
+   --------------------------------------------------------------------------- */
+
+@media (max-width: 575.98px) {
+    .voter-img,
+    .party-img {
+        max-width: 100%;
+        height: auto;
+    }
+
+    /* Long unbroken strings (EPIC numbers, emails) must not widen the page. */
+    .card,
+    td,
+    th,
+    p,
+    h1,
+    h2,
+    h3,
+    h4,
+    h5 {
+        overflow-wrap: break-word;
+        word-wrap: break-word;
+    }
+}
+
+/* ---------------------------------------------------------------------------
+   4. Tap targets
+   Booth kiosks are used on a touch screen, often by people unfamiliar with
+   one. Only applies to coarse pointers, so desktop rendering is untouched.
+   --------------------------------------------------------------------------- */
+
+@media (pointer: coarse) {
+    .btn,
+    .btn-custom,
+    button,
+    input[type="submit"],
+    input[type="button"] {
+        min-height: 48px;
+    }
+}
+
+/* ---------------------------------------------------------------------------
+   5. Reduce motion
+   --------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: .001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .001ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* ---------------------------------------------------------------------------
+   6. Print
+   Useful for the admin console: an officer may want a printed voter roll or
+   result sheet. Drop the chrome, keep the data.
+   --------------------------------------------------------------------------- */
+
+/* ---------------------------------------------------------------------------
+   7. Language strip
+   Rendered by render_lang_switcher() on the pages that have translations.
+   --------------------------------------------------------------------------- */
+
+.lang-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 6px 14px;
+    background-color: #f1f3f5;
+    border-bottom: 1px solid var(--border-light);
+    font-size: .85rem;
+    line-height: 1.4;
+}
+
+.lang-bar-label {
+    margin-right: .5rem;
+    color: var(--text-muted, #6c757d);
+    font-weight: bold;
+}
+
+.lang-bar .lang-opt {
+    margin-left: .25rem;
+    padding: 3px 12px;
+    border-radius: 14px;
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.lang-bar .lang-opt:hover {
+    background-color: #e9ecef;
+}
+
+.lang-bar .lang-opt.is-active {
+    background-color: var(--primary-color);
+    color: #ffffff;
+}
+
+@media print {
+    .header,
+    footer,
+    .btn,
+    .btn-custom,
+    .btn-admin,
+    .navbar,
+    .lang-bar,
+    .no-print {
+        display: none !important;
+    }
+
+    body {
+        background: #ffffff !important;
+    }
+
+    .card,
+    .portal-card,
+    table {
+        box-shadow: none !important;
+        border-color: #999999 !important;
+    }
+
+    a[href]::after {
+        content: " (" attr(href) ")";
+        font-size: 90%;
+        color: #555555;
+    }
+}

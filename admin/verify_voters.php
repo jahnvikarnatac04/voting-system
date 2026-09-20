@@ -57,12 +57,8 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Verify Voters - Admin Panel</title>
     <link rel="stylesheet" href="../bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../css/app.css">
     <style>
-        :root {
-            --primary-color: blueviolet;
-            --primary-hover: #701eb8;
-            --bg-light: #f8f9fa;
-        }
         body {
             background-color: var(--bg-light);
             font-family: Arial, sans-serif;
@@ -117,6 +113,7 @@ try {
             border-top: 1px solid #e9ecef;
         }
     </style>
+    <link rel="stylesheet" href="../css/ui.css">
 </head>
 <body>
 
@@ -148,6 +145,7 @@ try {
             <?php endif; ?>
 
             <div class="table-responsive">
+                <div class="table-responsive">
                 <table class="table table-hover align-middle">
                     <thead class="thead-light">
                         <tr>
@@ -210,6 +208,7 @@ try {
                         <?php endif; ?>
                     </tbody>
                 </table>
+                </div>
             </div>
         </div>
     </main>

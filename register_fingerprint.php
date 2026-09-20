@@ -16,9 +16,8 @@ $target_voter_id = $_SESSION['temp_fp_voter_id'] ?? $_SESSION['vid'];
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Biometric Fingerprint Enrollment - Online Voting System</title>
     <link rel="stylesheet" href="bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/app.css">
     <style>
-        :root { --primary-color: blueviolet; --primary-hover: #701eb8; }
-        body { background-color: #f8f9fa; font-family: Arial, sans-serif; }
         .fp-card {
             background: #fff;
             border-radius: 12px;
@@ -39,9 +38,8 @@ $target_voter_id = $_SESSION['temp_fp_voter_id'] ?? $_SESSION['vid'];
             border: none;
             width: 100%;
         }
-        .btn-custom:hover { background-color: var(--primary-hover); color: #fff; }
-        .btn-custom:disabled { background-color: #c9b8dc; cursor: not-allowed; }
     </style>
+    <link rel="stylesheet" href="css/ui.css">
 </head>
 <body>
 

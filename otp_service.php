@@ -3,6 +3,8 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+require_once __DIR__ . '/includes/app_config.php';
+
 /**
  * 1. Send OTP to Email (via standard mail / SMTP format)
  */
@@ -21,7 +23,7 @@ function send_email_otp($to_email, $recipient_name, $otp) {
  * 2. Send OTP to Phone (via CallMeBot Free WhatsApp Gateway)
  */
 function send_phone_otp($mobile, $otp) {
-    $apiKey = "YOUR_CALLMEBOT_API_KEY"; // Get free key from CallMeBot on WhatsApp
+    $apiKey = (string) app_config('CALLMEBOT_API_KEY', '');
     
     // Format 10-digit number with country code 91
     $clean_mobile = preg_replace('/[^0-9]/', '', $mobile);

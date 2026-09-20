@@ -52,14 +52,10 @@ if (!empty($imageName) && file_exists(__DIR__ . "/../images/" . $imageName)) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Face Verification - Online Voting System</title>
     <link rel="stylesheet" href="../bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../css/app.css">
     <!-- face-api.js is vendored locally so no internet is needed at runtime -->
     <script src="../js/face-api.min.js"></script>
     <style>
-        :root {
-            --primary-color: blueviolet;
-            --primary-hover: #701eb8;
-            --bg-light: #f8f9fa;
-        }
 
         body {
             background-color: var(--bg-light);
@@ -110,7 +106,7 @@ if (!empty($imageName) && file_exists(__DIR__ . "/../images/" . $imageName)) {
             transform: scaleX(-1);
             background: #000;
         }
-        /* liveness hint overlaid on the video */
+                                                 
         .liveness-tag {
             position: absolute;
             left: 50%;
@@ -134,8 +130,6 @@ if (!empty($imageName) && file_exists(__DIR__ . "/../images/" . $imageName)) {
             border-radius: 6px;
             border: none;
         }
-        .btn-custom:hover { background-color: var(--primary-hover); color: #fff; }
-        .btn-custom:disabled { background-color: #c9b8dc; cursor: not-allowed; }
 
         .step-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #dee2e6; margin: 0 3px; }
         .step-dot.active { background: var(--primary-color); }
@@ -150,6 +144,7 @@ if (!empty($imageName) && file_exists(__DIR__ . "/../images/" . $imageName)) {
             border-top: 1px solid #e9ecef;
         }
     </style>
+    <link rel="stylesheet" href="../css/ui.css">
 </head>
 <body>
 

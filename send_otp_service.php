@@ -3,6 +3,7 @@ use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
 require_once __DIR__ . '/vendor/autoload.php';
+require_once __DIR__ . '/includes/app_config.php';
 
 /**
  * 1. Send Real Email via Gmail SMTP
@@ -12,14 +13,17 @@ function send_real_email_otp($recipient_email, $recipient_name, $otp) {
 
     try {
         $mail->isSMTP();
-        $mail->Host       = 'smtp.gmail.com';
+        $mail->Host       = app_config('SMTP_HOST', 'smtp.gmail.com');
         $mail->SMTPAuth   = true;
-        $mail->Username   = 'YOUR_GMAIL_ADDRESS@gmail.com';      // Your Gmail
-        $mail->Password   = 'YOUR_16_DIGIT_APP_PASSWORD';       // 16-character App Password
+        $mail->Username   = app_config('SMTP_USERNAME');
+        $mail->Password   = app_config('SMTP_PASSWORD');
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-        $mail->Port       = 587;
+        $mail->Port       = (int) app_config('SMTP_PORT', 587);
 
-        $mail->setFrom('YOUR_GMAIL_ADDRESS@gmail.com', 'Online Voting System');
+        $mail->setFrom(
+            app_config('SMTP_FROM', app_config('SMTP_USERNAME')),
+            app_config('SMTP_FROM_NAME', 'Online Voting System')
+        );
         $mail->addAddress($recipient_email, $recipient_name);
 
         $mail->isHTML(true);
@@ -47,7 +51,7 @@ function send_real_email_otp($recipient_email, $recipient_name, $otp) {
  */
 function send_real_phone_otp($mobile, $otp) {
     // Fast2SMS API integration for Indian numbers
-    $apiKey = "YOUR_FAST2SMS_API_KEY"; // From fast2sms.com dashboard
+    $apiKey = (string) app_config('FAST2SMS_API_KEY', '');
     
     $clean_mobile = preg_replace('/[^0-9]/', '', $mobile);
     if (strlen($clean_mobile) === 12 && substr($clean_mobile, 0, 2) === '91') {

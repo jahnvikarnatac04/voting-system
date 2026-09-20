@@ -34,13 +34,9 @@ $selected_constituency = $_SESSION['selected_constituency'] ?? '';
 
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/app.css">
     
     <style>
-        :root {
-            --primary-color: blueviolet;
-            --primary-hover: #701eb8;
-            --bg-light: #f8f9fa;
-        }
 
         body {
             background-color: var(--bg-light);
@@ -160,7 +156,7 @@ $selected_constituency = $_SESSION['selected_constituency'] ?? '';
             text-decoration: none;
         }
 
-        /* Discreet Admin Section */
+                                    
         .discreet-admin-section {
             margin-top: 100px;
             padding: 40px 20px 20px 20px;
@@ -214,6 +210,7 @@ $selected_constituency = $_SESSION['selected_constituency'] ?? '';
             text-decoration: underline;
         }
     </style>
+    <link rel="stylesheet" href="css/ui.css">
 </head>
 <body>
 
@@ -305,7 +302,7 @@ $selected_constituency = $_SESSION['selected_constituency'] ?? '';
             <!-- Step 2: Centered Voter Portal -->
             <div class="hero-section">
                 <h2>Welcome to the Online Voting Portal</h2>
-                <p class="mb-2">Cast your vote securely using biometric face verification</p>
+                <p class="mb-2">View certified Lok Sabha candidates and manage your voter profile — your ballot is cast in person at your polling booth</p>
                 <div class="mb-2">
                     <span class="constituency-badge">
                         <?= htmlspecialchars($selected_constituency); ?>, <?= htmlspecialchars($selected_state); ?>
@@ -320,7 +317,7 @@ $selected_constituency = $_SESSION['selected_constituency'] ?? '';
                     <div class="portal-card">
                         <div>
                             <h4>Citizen Voter Portal</h4>
-                            <p>Log in with your voter credentials and 2FA OTP to view certified Lok Sabha candidates and cast your ballot.</p>
+                            <p>Log in with your voter credentials and 2FA OTP to view certified Lok Sabha candidates and manage your profile. <strong>Voting is done in person at your polling booth</strong> — show your fingerprint at the booth kiosk to cast your ballot.</p>
                         </div>
                         <div class="mt-3">
                             <a href="login.php" class="btn btn-custom">Voter Login &rarr;</a>
@@ -336,8 +333,9 @@ $selected_constituency = $_SESSION['selected_constituency'] ?? '';
             <!-- Discreet Admin Section (Visible by scrolling down) -->
             <div class="discreet-admin-section" id="admin-section">
                 <div class="admin-box">
-                    <p class="text-muted font-weight-bold mb-3">Only Admin Login</p>
+                    <p class="text-muted font-weight-bold mb-3">Election Staff Access</p>
                     <a href="admin/login.php" class="btn-admin">🔒 Administrator Login</a>
+                    <a href="kiosk/login.php" class="btn-admin ml-2">📍 Booth Kiosk</a>
                 </div>
             </div>
 

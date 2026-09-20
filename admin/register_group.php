@@ -104,12 +104,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register_group'])) {
     <title>Register Party / Candidate - Admin Panel</title>
 
     <link rel="stylesheet" href="../bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../css/app.css">
     <style>
-        :root {
-            --primary-color: blueviolet;
-            --primary-hover: #701eb8;
-            --bg-light: #f8f9fa;
-        }
 
         body {
             background-color: var(--bg-light);
@@ -155,11 +151,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register_group'])) {
             border: none;
         }
 
-        .btn-custom:hover {
-            background-color: var(--primary-hover);
-            color: #ffffff;
-        }
-
         footer {
             text-align: center;
             padding: 15px 0;
@@ -169,6 +160,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register_group'])) {
             border-top: 1px solid #e9ecef;
         }
     </style>
+    <link rel="stylesheet" href="../css/ui.css">
 </head>
 <body>
 

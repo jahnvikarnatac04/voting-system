@@ -1,4 +1,8 @@
 {
+    "name": "goelmisha/voting-system",
+    "description": "Online Voting System - a PHP + SQLite Lok Sabha election portal with biometric voter verification, a booth kiosk, and an election-commission admin console.",
+    "type": "project",
+    "license": "proprietary",
     "require": {
         "phpmailer/phpmailer": "^7.1"
     }

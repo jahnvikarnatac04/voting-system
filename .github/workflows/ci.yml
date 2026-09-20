@@ -1,0 +1,87 @@
+name: CI
+
+# Executable enforcement for the process framework.
+# See PROCESS.md §3 and docs/process/policies/.
+#
+# NOTE: this pipeline is intentionally a *real* gate. Until IMP-01/IMP-02
+# (secret hygiene + .gitignore/untracking) are complete, the secret-scan job
+# will fail — that is the point: the framework surfaces the gap rather than
+# hiding it. Track progress in docs/process/04-process-improvement.md §3.
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------- lint
+  lint:
+    name: PHP lint & Composer validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          extensions: pdo_sqlite, openssl, curl, mbstring
+
+      - name: Validate composer.json / composer.lock
+        run: composer validate --strict
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Lint all PHP source
+        run: |
+          set -e
+          find . -path ./vendor -prune -o -name '*.php' -print \
+            | while read -r f; do php -l "$f" >/dev/null || exit 1; done
+          echo "PHP lint clean."
+
+  # ------------------------------------------------------- process gates
+  process:
+    name: Process gates (secrets + PAL audit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Secret & uncontrolled-data scan
+        run: bash scripts/process/check_secrets.sh
+
+      - name: Process Asset Library audit
+        run: bash scripts/process/process_audit.sh
+
+  # ------------------------------------------------------------- tests
+  # Enabled by IMP-04 (introduce the test harness). Until then this job is a
+  # no-op so the pipeline reflects reality instead of pretending.
+  test:
+    name: Automated tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          extensions: pdo_sqlite, openssl, curl, mbstring
+
+      - name: Run tests (if a harness exists)
+        run: |
+          if [ -f vendor/bin/phpunit ] && grep -q '"test"' composer.json; then
+            composer install --prefer-dist --no-progress --no-interaction
+            composer test
+          else
+            echo "No unit-test harness yet (see docs/process/04-process-improvement.md IMP-04)."
+          fi
+
+      # End-to-end: two booths, constituency rules, one-vote enforcement and
+      # the server-side face-match decision. Runs against an isolated database.
+      - name: End-to-end test — booth rules + face biometrics
+        run: php scripts/tests/e2e_booth_voting.php

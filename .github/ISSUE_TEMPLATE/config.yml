@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: "Process documentation (PAL)"
+    url: "https://github.com/goelmisha/voting-system/blob/main/PROCESS.md"
+    about: "How work is done here: processes, policies, procedures, templates."
+  - name: "How to run the app"
+    url: "https://github.com/goelmisha/voting-system/blob/main/README.md"
+    about: "Setup and demo instructions — not a defect report."

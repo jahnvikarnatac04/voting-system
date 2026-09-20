@@ -85,17 +85,9 @@ try {
     <title>Voter Dashboard - Online Voting System</title>
 
     <link rel="stylesheet" href="../bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../css/app.css">
     
     <style>
-        :root {
-            --primary-color: blueviolet;
-            --primary-hover: #701eb8;
-        }
-
-        body {
-            background-color: #f8f9fa;
-            font-family: Arial, sans-serif;
-        }
 
         .header {
             background-color: var(--primary-color); 
@@ -176,6 +168,7 @@ try {
             gap: 10px;
         }
     </style>
+    <link rel="stylesheet" href="../css/ui.css">
 </head>
 <body>
 
@@ -269,20 +262,27 @@ try {
                         AVAILABLE CANDIDATES<?= $region !== '' ? ' — ' . htmlspecialchars($region) : ' FOR VOTING'; ?>
                     </h4>
 
-                    <?php if (!$has_voted && !$is_face_verified): ?>
-                        <div class="alert alert-warning text-center py-2 mb-3">
-                            <small>Biometric verification is required before you can cast your vote. Choose <strong>Face Verification</strong> or <strong>Fingerprint Verification</strong> below.</small>
-                        </div>
-                    <?php endif; ?>
+                    <div class="alert alert-info text-center py-2 mb-3">
+                        <small>
+                            🗳️ <strong>Voting happens at your polling booth.</strong>
+                            Show your fingerprint at the booth kiosk to cast your ballot —
+                            this portal is for viewing candidates and managing your profile.
+                            <?php if (!$has_voted): ?>
+                                <br>You can still <a href="face_verify.php">verify your identity by face</a>
+                                or <a href="verify_biometrics.php">by fingerprint</a> here at any time.
+                            <?php endif; ?>
+                        </small>
+                    </div>
                     
                     <div class="table-responsive">
+                        <div class="table-responsive">
                         <table class="table table-bordered text-center align-middle">
                             <thead class="thead-dark">
                                 <tr>
                                     <th style="width: 10%;">S.No.</th>
                                     <th style="width: 25%;">Symbol</th>
                                     <th style="width: 45%;">Candidate & Party</th>
-                                    <th style="width: 20%;">Action</th>
+                                    <th style="width: 20%;">Your Vote</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -317,18 +317,10 @@ try {
                                                 <?php endif; ?>
                                             </td>
                                             <td class="align-middle">
-                                                <?php if (!$has_voted): ?>
-                                                    <?php if ($is_face_verified): ?>
-                                                        <form action="vote.php" method="POST" onsubmit="return confirm('Are you sure you want to cast your vote for <?= htmlspecialchars(addslashes($candidate['name'] ?? 'this candidate')); ?>? This action cannot be undone.');">
-                                                            <input type="hidden" name="candidate_id" value="<?= $candidate_id; ?>">
-                                                            <button type="submit" name="vote_btn" class="btn btn-success btn-sm font-weight-bold px-3">Vote</button>
-                                                        </form>
-                                                    <?php else: ?>
-                                                        <a href="face_verify.php" class="btn btn-warning btn-sm font-weight-bold px-2 mb-1">Verify Face</a><br>
-                                                        <a href="verify_biometrics.php" class="btn btn-info btn-sm font-weight-bold px-2">Verify Fingerprint</a>
-                                                    <?php endif; ?>
+                                                <?php if ($has_voted): ?>
+                                                    <span class="text-muted">&mdash;</span>
                                                 <?php else: ?>
-                                                    <button class="btn btn-secondary btn-sm" disabled>Voted</button>
+                                                    <span class="badge badge-info px-2 py-1">Vote at your booth</span>
                                                 <?php endif; ?>
                                             </td>
                                         </tr>
@@ -342,6 +334,7 @@ try {
                                 <?php endif; ?>
                             </tbody>
                         </table>
+                        </div>
                     </div>
                 </div>
             </div>

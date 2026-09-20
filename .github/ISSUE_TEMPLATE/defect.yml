@@ -1,0 +1,67 @@
+name: Defect
+description: Report a defect (SI.5). Integrity/security defects are highest priority.
+title: "bug: <short title>"
+labels: ["defect", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        See `docs/process/procedures/defect-management.md`.
+        **Never paste a secret or personal data into this issue.**
+
+  - type: textarea
+    id: observed
+    attributes:
+      label: What happened
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What was expected
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction steps
+      description: Or the `demo.md` step that failed.
+      placeholder: |
+        1. ...
+        2. ...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - "S1 — Integrity (double vote / wrong result / auth bypass / exposed secret)"
+        - "S2 — Security or privacy"
+        - "S3 — Functional"
+        - "S4 — Cosmetic"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Surface
+      options:
+        - Voter portal
+        - Booth kiosk
+        - Admin console
+        - WebAuthn / passkeys
+        - Database / schema
+        - CI / process tooling
+    validations:
+      required: true
+
+  - type: input
+    id: env
+    attributes:
+      label: Environment
+      placeholder: PHP 8.2, Chrome, localhost / HTTPS

@@ -10,6 +10,7 @@ exit();
 session_start();
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/vendor/autoload.php';
+require_once __DIR__ . '/includes/app_config.php';
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
@@ -34,14 +35,17 @@ function send_live_email($to_email, $to_name, $otp) {
     $mail = new PHPMailer(true);
     try {
         $mail->isSMTP();
-        $mail->Host       = 'smtp.gmail.com';
+        $mail->Host       = app_config('SMTP_HOST', 'smtp.gmail.com');
         $mail->SMTPAuth   = true;
-        $mail->Username   = 'jahnvikarnatac04@gmail.com';
-        $mail->Password   = 'zwtc zjgj kqnu lyrc';  // 16-digit Google App Password
+        $mail->Username   = app_config('SMTP_USERNAME');
+        $mail->Password   = app_config('SMTP_PASSWORD');
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-        $mail->Port       = 587;
+        $mail->Port       = (int) app_config('SMTP_PORT', 587);
 
-        $mail->setFrom('jahnvikarnatac04@gmail.com', 'Online Voting System');
+        $mail->setFrom(
+            app_config('SMTP_FROM', app_config('SMTP_USERNAME')),
+            app_config('SMTP_FROM_NAME', 'Online Voting System')
+        );
         $mail->addAddress($to_email, $to_name);
 
         $mail->isHTML(true);
@@ -210,12 +214,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['verify_otp_btn'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Voter Registration - Online Voting System</title>
     <link rel="stylesheet" href="bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/app.css">
     <style>
-        :root {
-            --primary-color: blueviolet;
-            --primary-hover: #701eb8;
-            --bg-light: #f8f9fa;
-        }
         body {
             background-color: var(--bg-light);
             font-family: Arial, sans-serif;
@@ -250,10 +250,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['verify_otp_btn'])) {
             border: none;
             width: 100%;
         }
-        .btn-custom:hover {
-            background-color: var(--primary-hover);
-            color: #ffffff;
-        }
         .otp-input {
             letter-spacing: 8px;
             font-size: 24px;
@@ -269,6 +265,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['verify_otp_btn'])) {
             background-color: #fff;
         }
     </style>
+    <link rel="stylesheet" href="css/ui.css">
 </head>
 <body>
 

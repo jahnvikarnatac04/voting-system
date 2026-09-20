@@ -1,0 +1,27 @@
+# CODEOWNERS — review ownership
+# Enforces: docs/process/policies/code-review.md (segregation of duties)
+#
+# NOTE: replace the handles below with the current maintainers' GitHub usernames.
+#       In a two-person team, each is the other's required reviewer.
+
+# Default: everything needs a maintainer review
+*                                   @goelmisha @jahnvikarnatac04
+
+# Process assets — Process Owner approval required (PAL §4)
+/PROCESS.md                         @goelmisha
+/docs/process/                      @goelmisha
+
+# Security-sensitive surface
+/includes/webauthn.php              @goelmisha
+/webauthn_options.php               @goelmisha
+/includes/config.example.php        @goelmisha
+/scripts/process/check_secrets.sh   @goelmisha
+
+# CI / enforcement
+/.github/workflows/                 @jahnvikarnatac04
+/scripts/process/                   @jahnvikarnatac04
+
+# Schema / data model
+/schema.sql                         @goelmisha
+/db.php                             @goelmisha
+/init_db.php                        @goelmisha
